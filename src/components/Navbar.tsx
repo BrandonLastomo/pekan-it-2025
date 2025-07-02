@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import profileIcon1 from "../assets/icons/profileIcon1.png";
 import profileIcon2 from "../assets/icons/profileIcon2.png";
 import tugasIcon1 from "../assets/icons/tugasIcon1.png";
 import tugasIcon2 from "../assets/icons/tugasIcon2.png";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import type { UserType as User } from "../types/user";
+import { cn } from "../utils/cn";
 import useGetUser from "../hooks/useGetUser";
 
 interface NavbarProps {
-  user: User | null; //Nullable
+  user: User | null;
 }
 
 const Navbar = ({ user }: NavbarProps) => {
@@ -20,22 +21,38 @@ const Navbar = ({ user }: NavbarProps) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+  const menuRef = useRef<HTMLUListElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: any) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsTaskOpen(false);
+        setIsProfileOpen(false);
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
 
   const handleScroll = () => {
     const offset = window.scrollY;
-    if (offset > 10) {
-      setScrolled(true);
-    } else {
-      setScrolled(false);
-    }
+    setScrolled(offset > 10);
   };
 
   const handleLogout = () => {
     try {
       logout(false);
-      // navigate("/")
-      navigate("/", { replace: true });
-      window.location.reload();
       navigate("/", { replace: true });
       window.location.reload();
       setIsProfileOpen(false);
@@ -45,32 +62,20 @@ const Navbar = ({ user }: NavbarProps) => {
     }
   };
 
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
   const isActive = (path: string) => {
-    if (path === "/") {
-      return location.pathname === "/";
-    }
+    if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
 
   const isTugasFokusActive = isActive("/todo") || isActive("/pomodoro");
   const isProfileActive = isActive("/profile");
 
-  const linkClass = (path: string) => {
-    return isActive(path)
+  const linkClass = (path: string) =>
+    isActive(path)
       ? "text-yellow-400 hover:text-yellow-300 font-semibold"
       : "text-white hover:text-gray-300 font-semibold";
-  };
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
     <>
@@ -88,15 +93,8 @@ const Navbar = ({ user }: NavbarProps) => {
           </div>
 
           <div className="md:hidden z-50">
-            <button
-              onClick={toggleMenu}
-              className="text-white focus:outline-none"
-            >
-              {isMenuOpen ? (
-                <X className="w-6 h-6 text-current" />
-              ) : (
-                <Menu className="w-6 h-6 text-current" />
-              )}
+            <button onClick={toggleMenu} className="text-white focus:outline-none">
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
 
@@ -108,53 +106,69 @@ const Navbar = ({ user }: NavbarProps) => {
             } md:relative md:bg-transparent md:h-auto md:py-0`}
           >
             <ul
-              className={`flex items-center ${
-                isMenuOpen ? "flex-col space-y-8 text-xl" : "flex-row space-x-6"
+              className={`flex ${
+                isMenuOpen
+                  ? "flex-col items-center space-y-8 text-xl"
+                  : "flex-row space-x-6"
               } md:flex-row md:space-x-6 md:space-y-0`}
             >
               <li>
-                <Link
-                  to="/"
-                  className={linkClass("/")}
-                  onClick={() => setIsMenuOpen(false)}
-                >
+                <Link to="/" className={linkClass("/")} onClick={() => setIsMenuOpen(false)}>
                   Home
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/friend"
-                  className={linkClass("/friend")}
+                  to="/find"
+                  className={linkClass("/find")}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Find Friends
                 </Link>
               </li>
               <li>
-                <Link
-                  to="/grade"
-                  className={linkClass("/grade")}
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Grade
+                <Link to="/grade" className={linkClass("/grade")} onClick={() => setIsMenuOpen(false)}>
+                  Peringkat
                 </Link>
               </li>
-              <li>
+              <li className="relative group cursor-pointer">
                 <Link
-                  to="/chat"
-                  className={linkClass("/chat")}
+                  to="#"
+                  className={
+                    location.pathname.includes("chat")
+                      ? "text-yellow-400 hover:text-yellow-300 font-semibold"
+                      : "text-white hover:text-gray-300 font-semibold"
+                  }
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Chat
+                  Chats
                 </Link>
+                <div className="absolute flex flex-col items-center w-[10rem] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-300 z-10 bg-white overflow-hidden">
+                  <Link
+                    className={cn(
+                      "w-full px-4 p-2 hover:text-secondary hover:bg-primary transition-colors duration-200", location.pathname === "/private-chat" && "bg-primary text-secondary") }
+                    to={"/private-chat"}
+                  >
+                    Private Chat
+                  </Link>
+                  <Link
+                    className={cn(
+                      "w-full px-4 p-2 hover:text-secondary hover:bg-primary transition-colors duration-200", location.pathname === "/group-chat" && "bg-primary text-secondary"
+                    )}
+                    to={"/group-chat"}
+                  >
+                    Group Chat
+                  </Link>
+                </div>
               </li>
               <li className="group relative flex flex-row justify-center items-center">
                 <button
-                  onClick={() => setIsTaskOpen(!isTaskOpen)}
+                  onClick={() => {
+                    setIsTaskOpen(!isTaskOpen);
+                    setIsProfileOpen(false);
+                  }}
                   className={`${
-                    isTugasFokusActive
-                      ? linkClass("/todo")
-                      : linkClass("/yanglaen")
+                    isTugasFokusActive ? linkClass("/todo") : linkClass("/yanglaen")
                   } flex items-center focus:outline-none`}
                 >
                   Tugas & Fokus
@@ -166,8 +180,11 @@ const Navbar = ({ user }: NavbarProps) => {
                 </button>
 
                 {isTaskOpen && (
-                  <ul className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg z-10">
-                    <li className="px-4 py-2 hover:bg-primary cursor-pointer rounded-2xl">
+                  <ul
+                    ref={menuRef}
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-40 bg-white rounded-3xl shadow-lg z-10"
+                  >
+                    <li className="px-5 py-2 hover:bg-primary hover:text-yellow-400 cursor-pointer rounded-2xl">
                       <Link
                         to="/todo"
                         onClick={() => {
@@ -192,67 +209,74 @@ const Navbar = ({ user }: NavbarProps) => {
                   </ul>
                 )}
               </li>
-              <li>
-                {user ? (
-                  // logged in
-                  <div>
-                    <button
-                      onClick={() => setIsProfileOpen(!isProfileOpen)}
-                      className={`${
-                        isProfileActive ? "text-yellow-400" : "text-white"
-                      } group flex flex-col items-center gap-1 focus:outline-none`}
-                    >
-                      <img
-                        src={isProfileActive ? profileIcon2 : profileIcon1}
-                        alt="Profile"
-                        className="w-6 group-hover:opacity-70"
-                      />
-                      <p className="text-xs">{user.name}</p>
-                    </button>
-                    {isProfileOpen && (
-                      <ul className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-lg z-10 text-gray-800">
-                        <li>
-                          <Link
-                            to={`/profile/${user.username}`}
-                            className="block w-full text-left px-4 py-2 hover:bg-gray-200 rounded-t-2xl"
-                            onClick={() => {
-                              setIsProfileOpen(false);
-                              setIsMenuOpen(false);
-                            }}
-                          >
-                            Profile
-                          </Link>
-                        </li>
-                        <li>
-                          <button
-                            onClick={handleLogout}
-                            className="block w-full text-left px-4 py-2 hover:bg-gray-200 rounded-b-2xl"
-                          >
-                            Logout
-                          </button>
-                        </li>
-                      </ul>
-                    )}
-                  </div>
-                ) : (
-                  // not logged in
-                  <Link
-                    to="/login"
+            </ul>
+
+            <div className={`relative ${isMenuOpen ? "mt-8" : "md:ml-10"}`}>
+              {user ? (
+                <div>
+                  <button
+                    onClick={() => {
+                      setIsProfileOpen(!isProfileOpen);
+                      setIsTaskOpen(false);
+                    }}
                     className={`${
-                      isActive("/login") ? "text-yellow-400" : "text-white"
-                    } group flex flex-col items-center gap-1`}
-                    onClick={() => setIsMenuOpen(false)}
+                      isProfileActive ? "text-yellow-400" : "text-white"
+                    } group flex flex-col items-center gap-1 focus:outline-none`}
                   >
                     <img
-                      src={isActive("/login") ? profileIcon2 : profileIcon1}
-                      alt="Login"
+                      src={isProfileActive ? profileIcon2 : profileIcon1}
+                      alt="Profile"
                       className="w-6 group-hover:opacity-70"
                     />
-                    <p className="text-xs">Login</p>
-                  </Link>
-                )}
-              </li>
-            </ul>
+                    <p className="text-xs">{user.name}</p>
+                  </button>
+
+                  {isProfileOpen && (
+                    <ul
+                      ref={menuRef}
+                      className="absolute right-0 top-full mt-2 w-40 bg-white rounded-3xl shadow-lg z-10 text-gray-800"
+                    >
+                      <li className="hover:bg-primary cursor-pointer rounded-2xl">
+                        <Link
+                          to={`/profile/${user.username}`}
+                          className="block w-full text-left px-4 py-2 rounded-t-2xl hover:text-yellow-400"
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            setIsMenuOpen(false);
+                          }}
+                        >
+                          Profil
+                        </Link>
+                      </li>
+                      <li className="hover:bg-primary cursor-pointer rounded-2xl">
+                        <button
+                          onClick={handleLogout}
+                          className="flex gap-2 w-full text-left px-4 py-2 rounded-b-2xl hover:text-yellow-400"
+                        >
+                          <LogOut />
+                          Keluar
+                        </button>
+                      </li>
+                    </ul>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className={`${
+                    isActive("/login") ? "text-yellow-400" : "text-white"
+                  } group flex flex-col items-center gap-1`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <img
+                    src={isActive("/login") ? profileIcon2 : profileIcon1}
+                    alt="Login"
+                    className="w-6 group-hover:opacity-70"
+                  />
+                  <p className="text-xs">Login</p>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </nav>
