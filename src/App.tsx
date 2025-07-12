@@ -2,9 +2,11 @@ import { Route, Routes, useLocation } from "react-router";
 import { Dashboard } from "./pages/Dashboard";
 import Auth from "./pages/auth/Auth";
 import Register from "./pages/auth/Register";
-import Login from "./pages/auth/Login";
+import Forgot_pass from "./pages/auth/Forgot_pass";
+import Forgot_pass2 from "./pages/auth/Forgot_pass2";
+import Verfikasi_pass from "./pages/auth/Verfikasi_pass";
+import Verfikasi_regist from "./pages/auth/Verfikasi_regist";
 import Profile from "./pages/profile/Profile";
-import PomodoroTimer from "./pages/pomodoro/Pomodoro";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import FindFriend from "./pages/findFriend/FindFriend";
@@ -14,23 +16,27 @@ import TodoDetail from "./pages/todo/TodoDetail";
 import AddTodo from "./pages/todo/AddTodo";
 import useGetUser from "./hooks/useGetUser";
 import { Skeleton } from "./components/ui/skeleton";
-import PrivateChatPage from "./pages/chat/PrivateChatPage";
-import GroupChatPage from "./pages/chat/GroupChatPage";
-import BaseToaster from "./components/systems/BaseToaster";
+import { useCookieConsent } from "./hooks/useCookieConsent";
 import { useEffect, useState } from "react";
+import CookieConsentBanner from "./components/CookieConsent";
+import UnknownRoute from "./pages/UnknownRoute";
+import GroupChatPage from "./pages/chat/GroupChatPage";
+import PrivateChatPage from "./pages/chat/PrivateChatPage";
+import PomodoroPage from "./pages/pomodoro/Pomodoro";
+import Login from "./pages/auth/Login";
 
 function App() {
-  const location = useLocation();
+ const location = useLocation();
   const pathCheck =
     location.pathname.startsWith("/profile") || location.pathname === "/friend";
-  const { user, loading } = useGetUser();
-
+  const { user, loading, error } = useGetUser();
+  const { showCookieConsent, cookieConsentGiven, handleCookieConsent } = useCookieConsent(); //Minta izin cookie
   const [isAppReady, setIsAppReady] = useState(false);
 
   useEffect(() => {
     const initializeApp = async () => {
       if (!loading) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         setIsAppReady(true);
       }
     };
@@ -49,10 +55,14 @@ function App() {
       </div>
     );
   }
-
   return (
     <>
       <div className="min-h-screen flex flex-col">
+        <CookieConsentBanner
+          showCookieConsent={showCookieConsent}
+          handleCookieConsent={handleCookieConsent}
+          cookieConsentGiven={cookieConsentGiven}
+        />
         {/* {error}  //soon (Blm dipikirin)*/}
         {loading ? (
           <div className="flex-grow flex items-center justify-center">
@@ -67,7 +77,6 @@ function App() {
             } min-h-screen flex flex-col`}
           >
             <Navbar user={user} />
-            <BaseToaster />
             <main className="flex-grow">
               <Routes>
                 <Route index element={<Dashboard />} />
@@ -81,18 +90,18 @@ function App() {
                 />
 
                 <Route path="/todo" element={<TodoList user={user} />} />
-                {/* <Route path="/todo/detail" element={<TodoDetail />} /> */}
                 <Route path="/todo/post" element={<AddTodo user={user} />} />
-                <Route path="/pomodoro" element={<PomodoroTimer />} />
+                <Route path="/pomodoro" element={<PomodoroPage user={user} />} />
 
                 <Route path="/friend" element={<FindFriend user={user} />} />
                 <Route path="/grade" element={<Grade />} />
                 <Route path="/private-chat" element={<PrivateChatPage />} />
                 <Route path="/group-chat" element={<GroupChatPage />} />
+                <Route path="*" element={<UnknownRoute />} />
               </Routes>
             </main>
-            <Footer />
-          </div>
+              <Footer />
+            </div>
         )}
       </div>
     </>
